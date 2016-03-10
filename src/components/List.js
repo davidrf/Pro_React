@@ -3,7 +3,8 @@ import Card from './Card';
 
 class List extends Component {
   render() {
-    let cards = this.props.cards.map(card => {
+    let { cards, taskCallbacks } = this.props;
+    cards = cards.map(card => {
       let { id, title, description, tasks, color } = card;
       return (
         <Card
@@ -13,6 +14,7 @@ class List extends Component {
           description={description}
           color={color}
           tasks={tasks}
+          taskCallbacks={taskCallbacks}
         />
       );
     });
@@ -27,7 +29,8 @@ class List extends Component {
 }
 List.propTypes = {
   title: PropTypes.string.isRequired,
-  cards: PropTypes.arrayOf(PropTypes.object)
+  cards: PropTypes.arrayOf(PropTypes.object),
+  taskCallbacks: PropTypes.object
 };
 
 export default List;

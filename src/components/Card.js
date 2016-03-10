@@ -29,7 +29,7 @@ class Card extends Component {
   }
 
   render() {
-    let { title, description, id, tasks } = this.props,
+    let { title, description, id, tasks, taskCallbacks } = this.props,
         className = 'card__title',
         cardDetails;
 
@@ -37,7 +37,7 @@ class Card extends Component {
       cardDetails = (
         <div className="card__details">
           <span dangerouslySetInnerHTML={{ __html: marked(description)}} />
-          <CheckList cardId={id} tasks={tasks} />
+          <CheckList cardId={id} tasks={tasks} taskCallbacks={taskCallbacks} />
         </div>
       );
       className += ' card__title--is-open';
@@ -68,6 +68,7 @@ Card.propTypes = {
   description: PropTypes.string,
   color: PropTypes.string,
   tasks: PropTypes.arrayOf(PropTypes.object),
+  taskCallbacks: PropTypes.object
 };
 
 export default Card;
