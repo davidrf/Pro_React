@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
-import KanbanBoard from './KanbanBoard';
 import 'whatwg-fetch';
+import { throttle } from '../utils';
+import KanbanBoard from './KanbanBoard';
 
 const API_URL = 'http://kanbanapi.pro-react.com';
 const API_HEADERS = {
@@ -18,6 +19,20 @@ class App extends Component {
     this.addTask = this.addTask.bind(this);
     this.deleteTask = this.deleteTask.bind(this);
     this.toggleTask = this.toggleTask.bind(this);
+    this.updateCardStatus = throttle(this.updateCardStatus.bind(this));
+    this.updateCardPosition = throttle(this.updateCardPosition.bind(this), 500);
+    this.persistCardDrag = this.persistCardDrag.bind(this);
+  }
+
+  componentDidMount() {
+    fetch(`${API_URL}/cards`, { headers: API_HEADERS })
+      .then(response => response.json())
+      .then(responseData => {
+        this.setState({ cards: responseData })
+      })
+      .catch(error => {
+        console.error('Error fetching and parsing data', error);
+      });
   }
 
   addTask(cardId, taskName) {
@@ -164,28 +179,107 @@ class App extends Component {
     });
   }
 
-  componentDidMount() {
-    fetch(`${API_URL}/cards`, { headers: API_HEADERS })
-      .then(response => response.json())
-      .then(responseData => {
-        this.setState({ cards: responseData })
-      })
-      .catch(error => {
-        console.log('Error fetching and parsing data', error);
+  updateCardStatus(cardId, listId) {
+    let previousState = this.state,
+        { cards } = this.state,
+        cardIndex,
+        card,
+        nextCard,
+        nextCards;
+
+    cardIndex = cards.findIndex(card => card.id === cardId);
+    card = cards[cardIndex];
+
+    if (card.status !== listId) {
+      nextCard = Object.assign({}, card, {
+        status: listId
       });
+      nextCards = [
+        ...cards.slice(0, cardIndex),
+        nextCard,
+        ...cards.slice(cardIndex + 1)
+      ];
+      this.setState({
+        cards: nextCards
+      });
+    }
+  }
+
+  updateCardPosition(cardId, afterId) {
+    let previousState = this.state,
+        { cards } = this.state,
+        cardIndex,
+        card,
+        afterIndex,
+        nextCard,
+        nextCards;
+
+    if (cardId !== afterId) {
+      cardIndex = cards.findIndex(card => card.id === cardId);
+      card = cards[cardIndex];
+      nextCards = [
+        ...cards.slice(0, cardIndex),
+        ...cards.slice(cardIndex + 1)
+      ];
+
+      afterIndex = cards.findIndex(card => card.id === afterId);
+      nextCards.splice(afterIndex, 0, card);
+
+      this.setState({
+        cards: nextCards
+      });
+    }
+  }
+
+  persistCardDrag(cardId, status) {
+    const { cards } = this.state;
+    let cardIndex,
+        previousCards,
+        previousCard;
+
+    cardIndex = cards.findIndex(card => card.id === cardId);
+    const card = cards[cardIndex];
+
+    fetch(`${API_URL}/cards/${cardId}`, {
+      method: 'put',
+      headers: API_HEADERS,
+      body: JSON.stringify({ status: card.status, row_order_position: cardIndex })
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Server response wasn't OK");
+      }
+    })
+    .catch(error => {
+      console.error('Fetch error:', error);
+      previousCard = Object.assign({}, card, { status });
+      previousCards = [
+        ...cards.slice(0, cardIndex),
+        previousCard,
+        ...cards.slice(cardIndex + 1),
+      ];
+      this.setState({ cards: previousCards });
+    })
   }
 
   render() {
-    let { cards } = this.state;
-    let taskCallbacks = {
-      toggle: this.toggleTask,
-      remove: this.deleteTask,
-      add: this.addTask
-    };
+    let { cards } = this.state,
+        taskCallbacks = {
+          toggle: this.toggleTask,
+          remove: this.deleteTask,
+          add: this.addTask
+        },
+        cardCallbacks = {
+          updateStatus: this.updateCardStatus,
+          updatePosition: this.updateCardPosition,
+          persistCardDrag: this.persistCardDrag
+        };
+
     return (
       <KanbanBoard
         cards={cards}
         taskCallbacks={taskCallbacks}
+        cardCallbacks={cardCallbacks}
       />
     );
   }
