@@ -1,7 +1,8 @@
+import marked from 'marked';
 import React, { Component, PropTypes } from 'react';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
-import marked from 'marked';
 import { DragSource, DropTarget } from 'react-dnd';
+import { Link } from 'react-router';
 import CheckList from './CheckList';
 import constants from '../constants';
 
@@ -94,6 +95,7 @@ class Card extends Component {
       connectDragSource(
         <div className="card">
           <div style={sideColor} />
+          <div className="card__edit"><Link to={`/edit/${id}`}>&#9998;</Link></div>
           <div className={className} onClick={this.toggleDetails}>{title}</div>
           <ReactCSSTransitionGroup
             transitionName="toggle"
